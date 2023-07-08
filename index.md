@@ -1,18 +1,34 @@
-Welcome to the Kubernetes labs.
+## Welcome to the Kubernetes Labs!
 
-These are hands-on resources to help you learn Kubernetes.
+We are excited to have you here and embark on your journey to learn Kubernetes. These labs are designed to provide you with hands-on resources and practical exercises to help you gain a solid understanding of Kubernetes, the leading container orchestration platform.
 
-## Pre-reqs
+Throughout these labs, you will have the opportunity to work with Kubernetes in a simulated environment, allowing you to experiment, explore, and deepen your knowledge of its key concepts and functionalities.
 
- - [Set up Kubernetes and a Git client](./setup/README.md) 
- - Download your repo
-    - Open a terminal (PowerShell on Windows; any shell on Linux/macOS) 
-    - Run: `git clone https://github.com/courselabs/kubernetes.git`
-     - Open the folder: `cd kubernetes`
-- _For advanced topics_
-    - Install [Helm](https://helm.sh/docs/intro/install/), [ArgoCD](https://argoproj.github.io/argo-cd/getting_started/#2-download-argo-cd-cli) and [k3d](https://k3d.io/v4.4.8/#installation) command line tools
-- _Optional_
-    - Install [Visual Studio Code](https://code.visualstudio.com) (free - Windows, macOS and Linux) to browse the repo and documentation
+Our aim is to provide you with a comprehensive learning experience that combines theoretical knowledge with practical application. You will have access to step-by-step instructions, code examples, and interactive exercises to guide you through each lab. Whether you are new to Kubernetes or looking to enhance your existing skills, these labs will help you build a strong foundation and become proficient in working with Kubernetes.
+
+We encourage you to actively engage in the labs, ask questions, and seek assistance whenever needed. Remember, learning Kubernetes is a continuous process, and these labs are just the beginning of your journey. Embrace the challenges, enjoy the discoveries, and let's dive into the exciting world of Kubernetes together!
+
+Happy exploring and have a fantastic learning experience!
+
+## Pre-requisites
+Before getting started with the Kubernetes labs, please ensure that you have the following:
+
+For the lab session, a browser-based lab environment has been set up, and the instructor will share the necessary credentials with you.
+
+## System Requirements
+To effectively use the lab environment, make sure your system meets the following requirements:
+
+* Use any modern browser such as Safari, Chrome, etc.
+* Open the browser in incognito mode.
+* Ensure you have a stable internet connection with at least 100 Mbps speed.
+* To begin the labs, follow these steps:
+
+## Download your repo:
+* Open a terminal (PowerShell on Windows; any shell on Linux/macOS).
+* Run the following command: git clone https://github.com/courselabs/kubernetes.git
+* Navigate to the cloned folder: `cd kubernetes`
+
+Now you're ready to dive into the Kubernetes labs and enhance your understanding of this powerful container orchestration platform. Enjoy the hands-on experience!
 
 ## Core Kubernetes
 
@@ -36,7 +52,7 @@ These are hands-on resources to help you learn Kubernetes.
 - [Jobs and CronJobs](labs/jobs/README.md)
 - [StatefulSets](labs/statefulsets/README.md)
 
-## Operating Kubernetes
+## Operations
 
 - [Production readiness](labs/productionizing/README.md)
 - [Monitoring](labs/monitoring/README.md)
@@ -49,9 +65,8 @@ These are hands-on resources to help you learn Kubernetes.
 - [Helm](labs/helm/README.md)
 - [Rollouts](labs/rollouts/README.md)
 - [Jenkins](labs/jenkins/README.md)
-- [ArgoCD](labs/argo/README.md)
 
-## Advanced Kubernetes
+## Network Policy
 
 - [NetworkPolicy](labs/networkpolicy/README.md)
 - [Admission](labs/admission/README.md)
@@ -62,12 +77,3 @@ These are hands-on resources to help you learn Kubernetes.
 - [Clusters](labs/clusters/README.md)
 - [Affinity](labs/affinity/README.md)
 - [Tools](labs/tools/README.md)
-
-## Real Kubernetes
-
-- [Troubleshooting](labs/troubleshooting/README.md)
-- [Hackathon!](hackathon/README.md)
-
-### Credits
-
-Created by [@EltonStoneman](https://twitter.com/EltonStoneman) ([sixeyed](https://github.com/sixeyed)): Freelance Consultant and Trainer. Author of [Learn Docker in a Month of Lunches](https://www.manning.com/books/learn-docker-in-a-month-of-lunches), [Learn Kubernetes in a Month of Lunches](https://www.manning.com/books/learn-kubernetes-in-a-month-of-lunches) and [many Pluralsight courses](https://pluralsight.pxf.io/c/1197078/424552/7490?u=https%3A%2F%2Fwww.pluralsight.com%2Fauthors%2Felton-stoneman).
