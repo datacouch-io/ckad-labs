@@ -21,11 +21,10 @@ To effectively use the lab environment, make sure your system meets the followin
 * Use any modern browser such as Safari, Chrome, etc.
 * Open the browser in incognito mode.
 * Ensure you have a stable internet connection with at least 100 Mbps speed.
-* To begin the labs, follow these steps:
 
 ## Download your repo:
 * Open a terminal (PowerShell on Windows; any shell on Linux/macOS).
-* Run the following command: git clone https://github.com/courselabs/kubernetes.git
+* Run the following command: git clone [https://github.com/courselabs/kubernetes.git](https://github.com/datacouch-io/ckad-labs.git)
 * Navigate to the cloned folder: `cd kubernetes`
 
 Now you're ready to dive into the Kubernetes labs and enhance your understanding of this powerful container orchestration platform. Enjoy the hands-on experience!
