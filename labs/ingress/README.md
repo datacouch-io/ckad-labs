@@ -1,242 +1,282 @@
-# Ingress
+The [Ingress](https://kubernetes.io/docs/concepts/services-networking/ingress/) is a Kubernetes API object that enables external access to services within a cluster by defining a set of rules. These rules are implemented and enforced by an [Ingress controller](https://kubernetes.io/docs/concepts/services-networking/ingress-controllers/).
 
-There are two parts to Ingress:
+In this Lab, we will guide you through the process of setting up a basic Ingress configuration that routes incoming requests to either the 'web' or 'web2' service based on the HTTP URI.
 
-- the controller, which is a reverse proxy that receives all incoming traffic
-- the Ingress objects which set up the routing rules for the controller.
+## Prerequisites
+This Lab assumes that you have minikube installed to run a local Kubernetes cluster.
 
-You can choose from different controllers. We'll use the [Nginx Ingress Controller](https://kubernetes.github.io/ingress-nginx/), but [Traefik](https://doc.traefik.io/traefik/providers/kubernetes-ingress/) and [Contour - a CNCF project](https://projectcontour.io) are popular alternatives.
+## Create a minikube cluster
+If you haven't already set up a local cluster, use the command `minikube start` to create one.
 
-## API specs
+## Enable the Ingress controller
+* To enable the NGINX Ingress controller, run the following command:
 
-- [Ingress (networking.k8s.io/v1)](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#ingress-v1-networking-k8s-io)
+  ```code
+  minikube addons enable ingress
+  ```
+
+* Verify that the NGINX Ingress controller is running:
+
+  ```code
+  kubectl get pods -n ingress-nginx
+  ```
+
+> It may take a minute for the pods to start running. Once running, the output should show the Ingress controller pod(s).
+
+  The output is similar to:
+
+  ```code
+  NAME                                        READY   STATUS      RESTARTS    AGE
+  ingress-nginx-admission-create-g9g49        0/1     Completed   0          11m
+  ingress-nginx-admission-patch-rqp78         0/1     Completed   1          11m
+  ingress-nginx-controller-59b45fb494-26npt   1/1     Running     0          11m
+  ```
+
+## Deploy a hello, world app
+
+* Create a Deployment using the following command:
+
+  ```code
+  kubectl create deployment web --image=gcr.io/google-samples/hello-app:1.0
+  ```
+  The output should be:
+  ```code
+  deployment.apps/web created
+  ```
+
+* Expose the Deployment:
+
+  ```code
+  kubectl expose deployment web --type=NodePort --port=8080
+  ```
+
+The output should be:
+
+  ```code
+  service/web exposed
+  ```
+
+* Verify that the Service is created and available on a node port:
+
+  ```code
+  kubectl get service web
+  ```
+  The output should resemble the following:
+
+  ```code
+  NAME      TYPE       CLUSTER-IP       EXTERNAL-IP   PORT(S)          AGE
+  web       NodePort   10.104.133.249   <none>        8080:31637/TCP   12m
+  ```
+
+* Visit the Service via NodePort:
+
+  ```code
+  minikube service web --url
+  ```
+
+  The output should resemble the following:
+
+  ```none
+  http://172.17.0.15:31637
+  ```
+
+  The resulting output should resemble the following:
+
+  ```code
+  Hello, world!
+  Version: 1.0.0
+  Hostname: web-55b8c6998d-8k564
+  ```
+
+  You can now access the sample application using the Minikube IP address and NodePort. The next step demonstrates accessing the application using the Ingress resource.
+
+## Create an Ingress
+The following manifest defines an Ingress that directs traffic to your Service using `hello-world.info`.
+
 
 <details>
-  <summary>YAML overview</summary>
-
-Ingress rules can have multiple mappings, but they're pretty straightforward. 
-
-You usually have one object per app, and they are namespaced, so you can deploy them in the same namespace as the app:
+  <summary>View `example-ingress.yaml` from the following file: </summary>
 
 ```
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: whoami
+  name: example-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
 spec:
   rules:
-  - host: whoami.local
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: whoami-internal
-            port: 
-              name: http
+    - host: hello-world.info
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web
+                port:
+                  number: 8080
 ```
-
-- `rules` - collection of routing rules
-- `host` - the DNS host name of the web app
-- `http` - ingress routing is only for web traffic
-- `paths` - collection of request paths, mapping to Kubernetes Services
-- `path` - the HTTP request path, can be generic `/` or specific `/admin`
-- `pathType` - whether path matching is as a `Prefix` or `Exact`
-- `backend.service` - Service where the controller will fetch content
-
 </details><br/>
 
-## Deploy an Ingress controller
+* Create the Ingress object by executing the following command:
 
-It's not a good name, because an ingress controller isn't a specific type of Kubernetes object - like a Deployment is a Pod controller. 
+  ```code
+  kubectl apply -f https://k8s.io/examples/service/networking/example-ingress.yaml
+  ```
 
-An ingress controller is a logical thing, composed of a Service, a Pod controller and a set of RBAC rules:
+  The output should be:
 
-- [01_namespace.yaml](specs/ingress-controller/01_namespace.yaml) - ingress controllers are shared for all apps, so they usuall have their own namespace
-- [02_rbac.yaml](specs/ingress-controller/02_rbac.yaml) - RBAC rules so the ingress controller can query the Kubernetes API for Service endpoints, Ingress objects and more
-- [configmap.yaml](specs/ingress-controller/configmap.yaml) - additional config for Nginx, to enable proxy caching
-- [daemonset.yaml](specs/ingress-controller/daemonset.yaml) - DaemonSet to run the ingress controller Pods; contains a few fields you haven't seen yet
-- [services.yaml](specs/ingress-controller/services.yaml) - Services for external access
+  ```
+  ingress.networking.k8s.io/example-ingress created
+  ```
 
-Deploy the controller:
+  Verify that the IP address is set:
 
-```
-kubectl apply -f labs/ingress/specs/ingress-controller
+  ```code
+  kubectl get ingress
+  ```
 
-kubectl get all -n ingress-nginx
+  > This may take a few minutes.
 
-kubectl wait --for=condition=Ready pod -n ingress-nginx -l app.kubernetes.io/name=ingress-nginx
-```
+  You should observe an IPv4 address in the ADDRESS column, similar to the following:
 
-> Browse to http://localhost:8000 or http://localhost:30000. There are no apps running in the cluster but you'll get a 404 response, which comes from the ingress controller
+  ```
+  NAME              CLASS    HOSTS              ADDRESS        PORTS   AGE
+  example-ingress   <none>   hello-world.info   172.17.0.15    80      38s
+  ```
 
-The ingress controller is powered by Nginx, but you don't need to configure routing inside Nginx - you treat it as a black box and do all the configuration with Ingress objects.
+* Verify that the Ingress controller is correctly directing traffic:
 
-## Publish a default app through ingress
+  ```code
+  curl --resolve "hello-world.info:80:$( minikube ip )" -i http://hello-world.info
+  ```
 
-We'll start with a default app which will be a catch-all, so users won't ever see the 404 response from the ingress controller.
+  You should see the following response:
+  ```
+  Hello, world!
+  Version: 1.0.0
+  Hostname: web-55b8c6998d-8k564
+  ```
 
-- [default/deployment.yaml](specs/default/deployment.yaml) - a simple Nginx deployment, using the standard Nginx image not the ingress controller
-- [default/configmap.yaml](specs/default/configmap.yaml) - configuration containing HTML file for Nginx to show
-- [default/service.yaml](specs/default/service.yaml) - ClusterIP Service
+You can also visit `hello-world.info` in your browser.
 
-📋 Deploy the default web app from `labs/ingress/specs/default`:
+* **Optionally**
 
-<details>
-  <summary>Not sure how?</summary>
+     Retrieve the external IP address reported by minikube:
+     ```code
+     minikube ip
+     ```
+     Add a line similar to the following to the bottom of the /etc/hosts file on your computer (you will need administrator access):
 
-```
-kubectl apply -f labs/ingress/specs/default
-```
+     ```none
+     172.17.0.15 hello-world.info
+     ```
+     > Ensure that you change the IP address to match the output from minikube ip.
 
-</details><br/>
+     After making this change, your web browser will send requests for `hello-world.info` URLs to Minikube.
 
-Nothing happens yet. Services aren't automatically wired up to the ingress controller - you do that by specifying routing rules in an Ingress object:
+## Create a second Deployment
+* Create another Deployment using the following command:
 
-- [ingress/default.yaml](specs/default/ingress/default.yaml) - Ingress rule with no host specified, so all requests will go here by default
+  ```code
+  kubectl create deployment web2 --image=gcr.io/google-samples/hello-app:2.0
+  ```
 
-📋 Now deploy the ingress rule in `labs/ingress/specs/default/ingress` and list all rules:
+  The output should be:
 
-<details>
-  <summary>Not sure how?</summary>
+  ```
+  deployment.apps/web2 created
+  ```
+* Expose the second Deployment:
 
-```
-kubectl apply -f labs/ingress/specs/default/ingress
+  ```code
+  kubectl expose deployment web2 --port=8080 --type=NodePort
+  ```
 
-kubectl get ingress
-```
+  The output should be:
+  ```
+  service/web2 exposed
+  ```
 
-</details><br/>
+## Modify the existing Ingress
+Create/Edit the existing `example-ingress.yaml` manifest and add the following lines at the end:
 
-When you browse to any URL you'll see the default response:
+  ```code
 
-> Browse to http://localhost:8000/a/bc.php or http://localhost:30000/a/bc.php
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: example-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+spec:
+  rules:
+    - host: hello-world.info
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web
+                port:
+                  number: 8080
+          - path: /v2
+            pathType: Prefix
+            backend:
+              service:
+                 name: web2
+                 port:
+                   number: 8080
 
-<details>
-  <summary>ℹ Ingress controllers usually have their own default backend.</summary>
- 
- That's where the 404 response originally came from Nginx. An alternative to running your own default app is to [customize the default backend](https://kubernetes.github.io/ingress-nginx/user-guide/default-backend/) - but that's specific to the ingress controller you're using.
+  ```
 
-</details><br/>
+Apply the changes:
 
-## Publish an app to a specific host address
-
-To publish all of your apps through the ingress controller it's the same pattern - have an internal Service over the application Pods, and an Ingress object with routing rules.
-
-Here's the spec for the whoami app, which will publish to a specific host name:
-
-- [whoami.yaml](specs/whoami/whoami.yaml) - Deployment and ClusterIP Service for the app, nothing ingress-specific
-- [whoami/ingress.yaml](specs/whoami/ingress.yaml) - Ingress which routes traffic with the host domain `whoami.local` to the ClusterIP Service
-
-📋 Deploy the app in `labs/ingress/specs/whoami` and check the Ingress rules.
-
-<details>
-  <summary>Not sure how?</summary>
-
-```
-kubectl apply -f labs/ingress/specs/whoami
-
-kubectl get ingress
-```
-
-</details><br/>
-
-To access the site locally you'll need to add an entry in your [hosts file](https://en.wikipedia.org/wiki/Hosts_(file)) - this script will do it for you (replace the IP address with a node IP if you're using a remote cluster):
-
-```
-# using Powershell - your terminal needs to be running as Admin:
-Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process -Force
-./scripts/add-to-hosts.ps1 whoami.local 127.0.0.1
-
-# on macOS or Linux - you'll be asked for your sudo password:
-sudo chmod +x ./scripts/add-to-hosts.sh
-./scripts/add-to-hosts.sh whoami.local 127.0.0.1
-```
-
-> Browse to http://whoami.local:8000 or http://whoami.local:30000 and you'll see the site. There are multiple replicas - refresh to see load-balancing between them
-
-## Use ingress with response caching
-
-The Ingress API doesn't support all the features of every ingress controller, so to use custom features you set the configuration in annotations.
-
-We'll publish the Pi web app on the hostname `pi.local`, first using a simple Ingress with no response cache:
-
-- [pi.yaml](specs/pi/pi.yaml) - Deployment and Service for the app
-- [pi/ingress.yaml](specs/pi/ingress.yaml) - Ingress which routes `pi.local` to the Service
-
-📋 Deploy the app in `labs/ingress/specs/pi`, check the status and add `pi.local` to your hosts file.
-
-<details>
-  <summary>Not sure how?</summary>
-
-```
-kubectl apply -f labs/ingress/specs/pi
-
-kubectl get ingress
-
-kubectl get po -l app=pi-web
-
-# Windows:
-./scripts/add-to-hosts.ps1 pi.local 127.0.0.1
-
-# *nix:
-./scripts/add-to-hosts.sh pi.local 127.0.0.1
+```code
+kubectl apply -f example-ingress.yaml
 ```
 
-</details><br/>
-
-> Browse to http://pi.local:8000/pi?dp=25000 / http://pi.local:30000/pi?dp=25000 it'll take a second or so to see the response. Refresh and you'll see the request is load-balanced and the response is calculated every time.
-
-We can update the Ingress object to use response caching - which the Nginx ingress controller supports:
-
-- [ingress-with-cache.yaml](specs/pi/update/ingress-with-cache.yaml) - uses Nginx annotations to use the cache; the controller looks for this when it sets up the config for the site
-
-There's no change to the app, only the Ingress:
-
+You should see:
 ```
-kubectl apply -f labs/ingress/specs/pi/update
+ingress.networking/example-ingress configured
 ```
 
-> Now browse to http://pi.local:8000/pi?dp=25000 / http://pi.local:30000/pi?dp=25000 - you'll see the cached response with every refresh.
+## Test your Ingress
+Access the first version of the Hello World app.
 
-
-<details>
-  <summary>ℹ Typically you won't want to cache all parts of your app.</summary>
-
-You may have different Ingress rules - one for all static content which has the cache annotation, and another for dynamic content.
-
-</details><br />
-
-## Lab
-
-Two parts to this lab. First we want to take the configurable web app and publish it through the ingress controller. 
-
-The app spec is already in place to get you started, your job is to build and deploy the Ingress routing:
+```code
+curl --resolve "hello-world.info:80:$( minikube ip )" -i http://hello-world.info
+```
+The output should resemble the following:
 
 ```
-kubectl apply -f labs/ingress/specs/configurable
+Hello, world!
+Version: 1.0.0
+Hostname: web-55b8c6998d-8k564
 ```
 
-The second part is we'd like to change the ingress controller to use the standard ports - 80 for HTTP and 443 for HTTPS. You'll only be able to do that if you're using the LoadBalancer.
+Access the second version of the Hello World app.
 
-> Stuck? Try [hints](hints.md) or check the [solution](solution.md).
+```code
+curl --resolve "hello-world.info:80:$( minikube ip )" -i http://hello-world.info/v2
+```
 
-___
+The output is similar to:
 
-## **EXTRA** Ingress for HTTPS
+```
+Hello, world!
+Version: 2.0.0
+Hostname: web2-75cd47646f-t8cjk
+```
 
-<details>
-  <summary>SSL termination and redirects</summary>
-
-Ingress controllers can apply TLS certificates to encrypt HTTPS traffic, so you don't need that logic in your apps. [Ingress for HTTPS](ingress-https.md) takes you through that.
-
-</details><br />
+> Note: If you did the optional step to update `/etc/hosts`, you can also visit `hello-world.info` and `hello-world.info/v2` from your browser.
 
 ___
 
 ## Cleanup
 
 ```
-kubectl delete all,secret,ingress,clusterrolebinding,clusterrole,ns,ingressclass -l kubernetes.courselabs.co=ingress
+kubectl delete all --all
 ```
