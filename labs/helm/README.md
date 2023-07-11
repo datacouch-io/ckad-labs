@@ -22,6 +22,8 @@ Helm uses the same context configuration as Kubectl to connect to your Kubernete
 
 The simple way, if you have a package manager installed:
 
+> Note Helm package is already installed in the machine
+
 ```
 # On Windows using Chocolatey:
 choco install kubernetes-helm
@@ -47,10 +49,10 @@ _You shouldn't use versions of Helm earlier than v3. Older versions needed a ser
 
 Here's a simple Helm chart for the whoami app. The release name is used in the object names, so the same app can be deployed multiple times.
 
-- [Chart.yaml](./charts/whoami/Chart.yaml) - describes the application; these are a standard Helm fields
-- [values.yaml](./charts/whoami/values.yaml) - defines the default values for custom fields used in the templates
-- [templates/deployment.yaml](./charts/whoami/templates/deployment.yaml) - the templated Deployment object, using variables for custom values (e.g. `.Values.imageTag` and standard objects (e.g. `.Release.Name`)
-- [templates/service.yaml](./charts/whoami/templates/service.yaml) - the templated Service
+- [Chart.yaml](../blob/main/labs/helm/charts/whoami/Chart.yaml) - describes the application; these are a standard Helm fields
+- [values.yaml](../blob/main/labs/helm/charts/whoami/values.yaml) - defines the default values for custom fields used in the templates
+- [templates/deployment.yaml](../blob/main/labs/helm/charts/whoami/templates/deployment.yaml) - the templated Deployment object, using variables for custom values (e.g. `.Values.imageTag` and standard objects (e.g. `.Release.Name`)
+- [templates/service.yaml](../blob/main/labs/helm/charts/whoami/templates/service.yaml) - the templated Service
 
 📋 Use Helm to install the chart from the `labs/helm/charts/whoami` folder, calling the release `whoami-default`.
 
@@ -83,17 +85,29 @@ kubectl get all -l app.kubernetes.io/managed-by=Helm
 ```
 kubectl get po -o wide --show-labels
 
-kubectl describe svc whoami-default-server 
+kubectl describe svc whoami-default-server
 ```
 
 </details><br/>
 
 > Two Pods are in the Service endpoints. The selector label comes from the release name, so a second release would not interfere with this one.
 
+Visit the Service via NodePort:
+
+```code
+minikube service whoami-default-server --url
+```
+
+The output should resemble the following:
+
+```
+http://192.168.49.2:30028
+```
+
 Try the app:
 
 ```
-curl localhost:30028
+curl 192.168.49.2:30028
 ```
 
 If you repeat the call you'll see responses load-balanced between Pods. The replica count and server mode are variables, currently using the default settings in the values file.
@@ -102,7 +116,7 @@ If you repeat the call you'll see responses load-balanced between Pods. The repl
 
 Any field in the values file can be overridden when you install or upgrade a release, using the `set` flag with the Helm CLI.
 
-- [values.yaml](./charts/whoami/values.yaml) - contains all the variable names for the whoami app, together with the default values
+- [values.yaml](../blob/main/labs/helm/charts/whoami/values.yaml) - contains all the variable names for the whoami app, together with the default values
 
 📋 Install a new release from the same whoami chart, called `whoami-custom`. Set the replica count to 1 and the Service port to `30038`.
 
@@ -130,7 +144,7 @@ kubectl get pods -l component=server -L app
 Your new Service should be listening at the specified port:
 
 ```
-curl localhost:30038
+curl 192.168.49.2:30038
 ```
 
 ## Upgrade a release with custom values
@@ -164,7 +178,7 @@ helm upgrade whoami-custom --reuse-values --set serverMode=V labs/helm/charts/wh
 Try the app now:
 
 ```
-curl localhost:30038
+curl 192.168.49.2:30038
 ```
 
 Check the ReplicaSets for the custom install and you can see that Helm just makes changes to the Kubernetes objects - the Deployment got updated and it rolled out the change in the usual way:
@@ -198,12 +212,12 @@ kubectl get rs -l app=whoami-custom
 And the app is working with the "quiet" server mode:
 
 ```
-curl localhost:30038
+curl 192.168.49.2:30038
 ```
 
 ## Using chart repositories
 
-Some teams use Helm to package their own apps - others stick with YAML files and only use Helm to deploy third-party apps. 
+Some teams use Helm to package their own apps - others stick with YAML files and only use Helm to deploy third-party apps.
 
 Projects like [Prometheus](https://prometheus-community.github.io/helm-charts/) and the [Nginx Ingress Controller](https://kubernetes.github.io/ingress-nginx/deploy/#using-helm) publish packages as Helm charts, which makes it easy for you to install a production-grade release.
 
@@ -261,7 +275,7 @@ List the Services to confirm the deployment:
 kubectl get svc -l app.kubernetes.io/instance=vweb
 ```
 
-> You should be able to browse to the app at http://localhost:30039. It's not very exciting.
+> You should be able to browse to the app at http://192.168.49.2:30039. It's not very exciting.
 
 Upgrades don't have to use a newer version. You can downgrade to the version `1.0.0` chart of this app, but it might not do what you think.
 
@@ -280,19 +294,19 @@ helm upgrade --reuse-values vweb kiamol/vweb --version 1.0.0
 
 </details><br/>
 
-> The "upgrade" works, but the v1 chart doesn't have a variable for the Service type, it's fixed as LoadBalancer. The app is still available at http://localhost:30039, but only if your cluster supports LoadBalancer services. 
+> The "upgrade" works, but the v1 chart doesn't have a variable for the Service type, it's fixed as LoadBalancer. The app is still available at http://192.168.49.2:30039, but only if your cluster supports LoadBalancer services.
 
 ## Lab
 
-You can use a local values file to override the defaults in a chart, instead of using lots of `set` arguments. 
+You can use a local values file to override the defaults in a chart, instead of using lots of `set` arguments.
 
 This values file is suitable for the Nginx ingress controller chart in a local environment:
 
-- [labs/helm/ingress-nginx/dev.yaml](./ingress-nginx/dev.yaml)
+- [labs/helm/ingress-nginx/dev.yaml](../blob/main/labs/helm/ingress-nginx/dev.yaml)
 
 Install the Nginx Ingress controller from the public Helm chart, using at least version `1.3.0` of the app. Use a new namespace called `ingress`. Browse to the HTTP endpoint and confirm you get a response from Nginx.
 
-> Stuck? Try [hints](hints.md) or check the [solution](solution.md).
+> Stuck? Try [hints](../blob/main/labs/helm/hints.md) or check the [solution](../blob/main/labs/helm/solution.md).
 
 ___
 
